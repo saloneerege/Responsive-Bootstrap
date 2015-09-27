@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>HW-8 assignment</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.13.1/jquery.validate.min.js"></script>
+  <style type="text/css">
+    .container
+      {
+    	margin: 20px;
+      }
+	/* Fix alignment issue of label on extra small devices in Bootstrap 3.2 */
+    .form-horizontal .control-label
+      {
+        padding-top: 7px;
+      }
+    
+    .error 
+      {
+        color:rgb(178, 33, 33);
+      }
+    
+    .control-label
+      {
+        color:black !important;
+      }
+    
+    </style>
+</head>
+<body>
+<script>     
+    window.fbAsyncInit = function()
+    {
+        FB.init({
+            appId      : '1615445272003189',
+            xfbml      : true,
+            version    : 'v2.3'
+        });
+    };
+
+  (function(d, s, id){
+      var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) {return;}
+        js = d.createElement(s); js.id = id;
+        js.src = "//connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script>
+    
+<script>
+  function Clearform(form1){
+    
+       var input_field= document.getElementById("Form1").getElementsByTagName("input");
+        
+                for(var i=0; i<input_field.length; i++){
+                    if(input_field[i].type == "checkbox"){
+                        input_field[i].checked = false;
+                    }
+                    else if(input_field[i].type == "text"){
+                        input_field[i].value = "";
+                    }
+        
+                }
+        var select_field1= document.getElementById("result");
+        select_field1.value="5";
+        
+         var select_field2= document.getElementById("sort_by");
+        select_field2.value="Best Match";
+        
+        var final=document.getElementById("final");
+        final.innerHTML="";
+       
+         document.getElementById("main_pagination").setAttribute("hidden","false");
+       
+  }
+</script>    
+    
+<script>
+   
+    $(document).ready(function(){ 
+        var flag=1;
+        current=1;
+        $.validator.addMethod("compare", function(value, element) {
+            if($('#price_from').val()=="" || $('#price_to').val()=="")
+                return true;
+            return parseFloat($('#price_from').val()) <= parseFloat($('#price_to').val()) 
+            }, "Maximum price cannot be less than minimum price or below 0");    
+     
+
+    $("#Form1").validate({
+    
+        rules: {
+            keyword :
+                {
+                    required : true
+                },
+            price_from : 
+                {
+                    number : true ,
+                    min : 0 
+                },
+            price_to :
+                {
+                    number : true ,
+                    min : 0 ,
+                    compare : true  
+                },
+            max_days:
+                {
+                    digits : true ,
+                    min : 1 
+                }
+        
+            },
+   
+        messages: {
+                    keyword :"Please enter a keyword" , 
+      
+        price_from : 
+                  {
+                    min : "Minimum price cannot be below 0",
+                    number : "Please enter a valid digit"
+          
+                  },
+        price_to :
+                 {
+                    min : "Maximum price cannot be below 0" ,
+                    number : "Please enter a valid digit"
+                 },
+        max_days :
+                {
+                    digits :"Max Handling time must be a valid digit " ,
+                    min : "Max handling time should be greater than or equal to 1"
+                }
+      
+   },
+    
+        highlight: function(element){
+                $(element).closest('.form-group').addClass('has-error');
+                $(element).next().addClass('error');
+                //$(element).closest('.control-label').addClass('labelColor');
+            },
+    
+      
+     
+        submitHandler: function(e){
+            
+            $.ajax({	
+                    url:'http://saloneerege-env.elasticbeanstalk.com/',
+                    data: $("#Form1").serializeArray(),	
+                    type:	'GET',
+                    success:	function(output){
+                    
+                        
+                            $("#final").html("");
+                           var json_object= $.parseJSON(output);
+                           resultsPerPage = parseInt(json_object.itemCount);
+                           if(json_object.ack == "No results found")
+                           {
+                               $("#final").append('<b><p> No results found<p></b>'); 
+                           }
+                           else {
+                           first = parseInt(((current-1) * resultsPerPage)+1);
+                           last = parseInt((first-1)+ resultsPerPage);
+                          totalResults = parseInt(json_object.resultCount);
+                          $("#final").append('<p style="font-size : 30px"><b>' + first + ' - ' + last + ' items out of ' + totalResults + '</b></p>');
+                         
+                            var key=0;
+                            $.each(json_object.item1,function(key1,value1){
+                            var media = $('<div class="media" id="main"></div>').appendTo($("#final")); 
+                            var modalClick = $('<a class="pull-left" href="#myModal" data-toggle="modal" image-url=" '+             value1.basicInfo.pictureURLSuperSize + '"  title-name=" ' + value1.basicInfo.title + '"><img height= "100px" width ="100px" class="media-object" src=" ' + value1.basicInfo.galleryURL + '"></img></a>').appendTo(media);
+                                                
+                            var mediaBody = $('<div class="media-body" id="media-b"></div>').appendTo(media);
+                            $(mediaBody).append('<a id = "link" href=" ' + value1.basicInfo.viewItemURL + '"><h4 class="media-heading">' + value1.basicInfo.title + '</h4></a>');
+                         if(value1.basicInfo.shippingServiceCost!=null && value1.basicInfo.shippingServiceCost > 0 ){
+                            $(mediaBody).append('<b>Price : $ ' + value1.basicInfo.convertedCurrentPrice + '(+$' + value1.basicInfo.shippingServiceCost + '</b>)&nbsp;  &nbsp;' );
+             }
+                        else 
+                        {
+                            $(mediaBody).append('<b>Price : $ ' + value1.basicInfo.convertedCurrentPrice + '</b> &nbsp;(FREE SHIPPING) &nbsp;');
+                        }  
+                        $(mediaBody).append('<i>Location : ' + value1.basicInfo.location + '</i> &nbsp; &nbsp;');
+                   if(value1.basicInfo.topRatedListing == 'true')
+                    {
+                        $(mediaBody).append('<img height="30px" width="30px" src="http://cs-server.usc.edu:45678/hw/hw8/itemTopRated.jpg"></img>');
+                    }
+                    var viewDetails = $('<a data-toggle="collapse" href="#demo' + key + '">View Details &nbsp;</a>').appendTo(mediaBody);
+                    if(value1.basicInfo.shippingServiceCost!=null && value1.basicInfo.shippingServiceCost > 0 )
+                        {
+                            $(mediaBody).append('<img height = "20px" width ="20px" src = "http://cs-server.usc.edu:45678/hw/hw8/fb.png" id ="facebook_share' + key +  '" ebay_image = " ' + value1.basicInfo.galleryURL + ' " ebay_link = " ' + value1.basicInfo.viewItemURL +' " description = "</br>Price $'  + value1.basicInfo.convertedCurrentPrice + '(+$' + value1.basicInfo.shippingServiceCost + '&nbsp; Location ' + value1.basicInfo.location +'"   ></img>');
+                        }
+                    else
+                        {
+                            $(mediaBody).append('<img height = "20px" width ="20px" src = "http://cs-server.usc.edu:45678/hw/hw8/fb.png" id ="facebook_share' + key +  '" ebay_link = " ' + value1.basicInfo.viewItemURL +' " description = "</br>Price : $' + value1.basicInfo.convertedCurrentPrice + '&nbsp; (FREE SHIPPING) &nbsp; Location ' + value1.basicInfo.location +'"   ></img></span>');
+                        }
+                        $('#facebook_share' + key).click(function(e) {
+                            FB.ui({
+                                method: 'feed',
+                                picture: $(this).attr("ebay_image"),
+                                link: $(this).attr("ebay_link"),
+                                description : $(this).attr("description"),    
+                                caption: 'Search Information from eBay.com',
+                                }, function(response){
+                                 if (response && !response.error_code) 
+                                 {
+                                        alert('Posted successfully');
+                                 } 
+                                else 
+                                 {
+                                        alert('Not posted');
+                                 }
+                                
+                });
+                        
+              });
+                                
+              //main
+                    var collapseDiv = $('<div id="demo' + key + '"class="collapse" role="tabpanel"></div>').appendTo(mediaBody);    
+            //nav tabs
+                    var tab = $('<ul class="nav nav-tabs" role="tablist"></ul>');
+                    $(tab).append('<li role="presentation"><a href="#demo_basic' + key + '" aria-controls="demo_basic' + key + '"role="tab" data-toggle="tab" class="active">Basic Info</a></li>'); 
+                    $(tab).append('<li role="presentation"><a href="#demo_seller' + key + '" aria-controls="demo_seller' + key + '"role="tab" data-toggle="tab" class="active">Seller Info</a></li>'); 
+                    $(tab).append('<li role="presentation"><a href="#demo_ship' + key + '" aria-controls="demo_ship' + key + '"role="tab" data-toggle="tab" class="active">Shipping Info</a></li>');     
+                    tab.appendTo(collapseDiv);   
+
+                    var display =$('<div class="tab-content"></div>').appendTo(collapseDiv);
+                    var BasicInfotab =$('<div role="tabpanel" class="tab-pane active" id="demo_basic'+ key + '"></div>').appendTo(display);
+                    $(BasicInfotab).append('<div class="col-sm-2"><b>Category Name</b></div><div class="col-sm-5"> ' + value1.basicInfo.categoryName +'</div></br>');  
+                    $(BasicInfotab).append('<div class="col-sm-2"><b>Condition</b></div><div class="col-sm-5">' + value1.basicInfo.conditionDisplayName + '</div></br>'); 
+                    $(BasicInfotab).append('<div class="col-sm-2"><b>Buying Format</b></div><div class="col-sm-5">' + value1.basicInfo.listingType + '</div></br>' );     
+                    var SellerInfotab =$('<div role="tabpanel" class="tab-pane" id="demo_seller'+ key + '"></div>').appendTo(display);
+                    $(SellerInfotab).append('<div class="col-sm-2"><b>User Name</b></div><div class="col-sm-5"> ' + value1.sellerInfo.sellerUserName + '</div></br>'); 
+                    $(SellerInfotab).append('<div class="col-sm-2"><b>Feedback score</b></div><div class="col-sm-5"> ' + value1.sellerInfo.feedbackScore + '</div></br>');     
+                   
+                    $(SellerInfotab).append('<div class="col-sm-2"><b>Feedback rating</b></div><div class="col-sm-5"> ' + value1.sellerInfo.positiveFeedbackPercent + ' %</div></br>');
+                                
+ $(SellerInfotab).append('<div class="col-sm-2"><b>Positive feedback</b></div><div class="col-sm-5"> ' + value1.sellerInfo.feedbackRatingStar + '</div></br>');                                
+                                
+                    if(value1.sellerInfo.topRatedSeller == 'true')
+                        {
+                            $(SellerInfotab).append('<div class="col-sm-2"><b>Top rated</b></div><div class="col-sm-5"> <span  style ="color : green " class="glyphicon glyphicon-ok"></span></div></br>');
+                        }
+                    else 
+                        {
+                            $(SellerInfotab).append('<div class="col-sm-2"><b>Top rated</b></div><div class="col-sm-5"> <span style ="color : red " class="glyphicon glyphicon-remove"></span></div></br>');
+                        }
+                   if(value1.sellerInfo.sellerStoreName == ""){
+                        $(SellerInfotab).append('<div class="col-sm-2"><b>Store</b></div><div class="col-sm-5">N/A</div></br>');
+                       
+                   }
+                    else
+                    {
+                    $(SellerInfotab).append('<div class="col-sm-2"><b>Store</b></div><div class="col-sm-5"><a href=" ' + value1.sellerInfo.sellerStoreURL + '">'+value1.sellerInfo.sellerStoreName+' </a></div></br>');
+                    }
+                var ShipInfotab =$('<div role="tabpanel" class="tab-pane" id="demo_ship'+ key + '"></div>').appendTo(display);
+                $(ShipInfotab).append('<div class="col-sm-2"><b>Shipping Type</b></div><div class="col-sm-5"> '+ value1.shippingInfo.shippingType + '</div></br>');
+                $(ShipInfotab).append('<div class="col-sm-2"><b>Handling time</b></div><div class="col-sm-5"> '+ value1.shippingInfo.handlingTime + ' day(s)</div></br>'); 
+                $(ShipInfotab).append('<div class="col-sm-2"><b>Shipping Location</b></div><div class="col-sm-5"> '+ value1.shippingInfo.shipToLocations + '</div></br>');
+                if(value1.shippingInfo.expeditedShipping == 'true')
+                {        
+                    $(ShipInfotab).append('<div class="col-sm-2"><b>Expedited Shipping</b></div><div class="col-sm-5"> <span  style ="color : green " class="glyphicon glyphicon-ok"></span></div></br>');    
+                }
+                else 
+                {
+                    $(ShipInfotab).append('<div class="col-sm-2"><b>Expedited Shipping</b></div><div class="col-sm-5"> <span style ="color : red " class="glyphicon glyphicon-remove"></span></div></br>');
+                }
+                if(value1.shippingInfo.oneDayShippingAvailable == 'true')
+                    {        
+                        $(ShipInfotab).append('<div class="col-sm-2"><b>One day shipping</b></div><div class="col-sm-5"> <span  style ="color : green " class="glyphicon glyphicon-ok"></span></div></br>');    
+                    }
+                else 
+                    {
+                        $(ShipInfotab).append('<div class="col-sm-2"><b>One day shipping</b></div><div class="col-sm-5"> <span style ="color : red " class="glyphicon glyphicon-remove"></span></div></br>');
+                    }
+                if(value1.shippingInfo.returnsAccepted == 'true')
+                {        
+                    $(ShipInfotab).append('<div class="col-sm-2"><b>Returns accepted</b></div><div class="col-sm-5"> <span  style ="color : green " class="glyphicon glyphicon-ok"></span></div></br>');    
+                }
+                
+                else {
+            
+                    $(ShipInfotab).append('<div class="col-sm-2"><b>Returns accepted</b></div><div class="col-sm-5"> <span style ="color : red " class="glyphicon glyphicon-remove"></span></div></br>');
+                    }
+                key++;   
+                            
+                
+            });
+                
+              
+              //  var pagination = $('<div id="main_pagination" hidden="false">ijfoifjio</div>').appendTo($("#final"));        
+                
+              $("#main_pagination").attr("hidden",false);
+                $('a').click(function(e){ 
+                        $('#myModal img').attr('src', $(this).attr('image-url')); 
+                        $('.modal-header h4').html($(this).attr('title-name'));
+                    });
+                           }
+                              },
+                
+                error:	function(){
+                    }
+        });
+    
+        }
+});
+    }); </script>
+    
+    
+<div class="container" >
+    <span style=" font-size : 30px" align = "center"><img height = "100px" width="100px" src= "http://cs-server.usc.edu:45678/hw/hw8/ebay.jpg"><b>Shopping</b></img></span></br>
+        <form role="form" id="Form1" class="form-horizontal">
+            <div class="form-group">
+                <label for="keyword" class="control-label col-sm-2">Key Words*:</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="keyword" name="keyword" placeholder = "Enter Keyword">
+            </div>
+            </div>  
+            
+            <div class="form-group">       
+                <label for="price_range" class="control-label col-sm-2">Price Range : </label>
+                    <div class="col-sm-5">    
+                        <input type="text" class="form-control" id="price_from" name="price_from" placeholder="from ($)" >
+                    </div>
+                <div class="col-sm-5">   
+                    <input type="text" class="form-control" id="price_to" name ="price_to" placeholder="to ($)" >
+                </div>
+            </div>    
+            
+            <div class="form-group">
+                <label for="condition[]" class="control-label col-sm-2">Condition:</label>
+                    <div class="col-sm-10"> 
+                        <div class="checkbox">     
+                  
+            <label><input type="checkbox"  name="condition[]" id="condition[]" value="1000">New</label>
+            <label><input type="checkbox" name="condition[]" id="condition[]" value="3000">Used</label>
+            <label><input type="checkbox"  name="condition[]" id="condition[]" value="4000">Very Good</label>
+            <label><input type="checkbox"  name="condition[]" id="condition[]" value="5000">Good</label>
+            <label><input type="checkbox" name="condition[]" id="condition[]" value="6000">Acceptable</label>
+        </div>
+        </div>
+    </div>    
+    <div class="form-group">
+      <label for="buy[]" class="control-label col-sm-2">Buying Formats : </label>
+      <div class="col-sm-10"> 
+        <div class="checkbox">     
+         
+          
+      <label><input type="checkbox"   name="buy[]" id="buy[]" value="FixedPrice">Buy It Now</label>
+      <label><input type="checkbox"    name="buy[]" id="buy[]" value="Auction">Auction</label>
+      <label><input type="checkbox"    name="buy[]" id="buy[]" value="Classified">Classified Ads</label>
+     </div>
+     </div>     
+    </div>    
+    <div class="form-group">
+      <label for="seller" class="control-label col-sm-2">Seller : </label>
+    
+      <div class="col-sm-10">
+        <div class="checkbox">  
+       <label><input type="checkbox" id="return_accepted" name="return_accepted" value="true">Return Accepted</label>
+        </div>    
+  </div> 
+</div>        
+        <div class="form-group">
+      <label for="shipping" class="control-label col-sm-2">Shipping: </label>
+      
+      <div class="col-sm-10">
+        <div class="checkbox">  
+      <label><input type="checkbox"  id="free_shipping" name="free_shipping" value="true">Free Shipping</label>
+       <label><input type="checkbox"  id="expedited" name="expedited" value="true">Expedited Shipping</label>
+    </div> 
+    </div>
+    </div>
+      <div class="form-group">
+      <div class="col-sm-offset-2 col-sm-10">
+          <input type="text" class="form-control" id="max_days" name="max_days" placeholder = "Max handling time(days)" >
+          
+      </div>
+    </div>      
+        
+      <div class="form-group">
+      <label for="sort_by" class="control-label col-sm-2">Sort by : </label>
+        
+      <div class="col-sm-10">
+          <select class="form-control" id="sort_by" name="sort_by">
+        <option selected VALUE="BestMatch">Best Match</option>
+        <option VALUE="CurrentPriceHighest">Price :	highest	first</option>
+        <option VALUE="PricePlusShippingHighest">Price + Shipping : highest first</option>
+        <option VALUE="PricePlusShippingLowest">Price +	Shipping: lowest first</option>
+      </select>
+      </div> 
+    </div>      
+      <div class="form-group">
+      <label for="result" class="control-label col-sm-2">Results per page : </label>
+    <div class="col-sm-10">
+      <select class = "form-control" id="result" name="result">
+        <option selected VALUE="5">5</option>
+        <option value="10">10</option>
+        </select>
+        </div>  
+     </div>
+        <div class="form-group">        
+      <div class="col-sm-offset-10 col-sm-12">
+           <button type="button" class="btn btn-default" name = "clear" id = "clear" onclick="Clearform(Form1)" VALUE="Clear" >Clear</button>
+     <button type="submit" class="btn btn-primary" id="search" name="search" VALUE="Search" >Search</button>
+       
+      </div>
+    </div>
+      <div class="form-group">      
+            <input type="hidden" name="pagenumber_input" id = "pagenumber_input" value=1>
+            </div> 
+ </form>
+    <div id="final">
+        
+    </div>    
+    
+     <div id="myModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+        <div class="modal-content">    
+        <div class="modal-header">
+
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+             <h4></h4>          
+        </div>
+        <div class="modal-body">
+            <img src="" style="width : 100% ; height : 100% ">
+        </div>
+            </div>
+        </div>
+    </div>
+    
+    <div name = "main_pagination" id="main_pagination" hidden="true">
+    <ul class="pagination">
+     <li id="prev" class="disabled">
+      <a  class = "previous" href="#" aria-label="Previous">
+        <span aria-hidden="true">&laquo;</span>
+      </a>
+    </li>
+    <li class="active"><a class="firstpage" id ="page1" href="#">1</a></li>
+    <li><a class="firstpage" id ="page2" href="#">2</a></li>
+    <li><a class="firstpage" id="page3" href="#">3</a></li>
+    <li><a class="firstpage" id="page4" href="#">4</a></li>
+    <li><a class="firstpage" id="page5" href="#">5</a></li>
+    <li>
+      <a class="next" href="#" aria-label="Next">
+        <span aria-hidden="true">&raquo;</span>
+      </a>
+    </li>
+  </ul>   
+    </div>
+
+    
+
+</div>   
+
+<script>
+   
+$('.firstpage').click(function(e){ 
+                  e.preventDefault();
+                
+                
+                $('.previous').parent().removeClass("disabled");
+                var current_page= parseInt($(this).html());
+                 current=current_page;
+                 console.log(current); 
+                $("#pagenumber_input").val(current_page); 
+
+                 $("#Form1").submit();
+                  
+                 $(".firstpage").parent().removeClass("active");
+                 $(this).parent().addClass("active");  
+                    
+                    
+                    });
+                
+                
+                 $('.previous').click(function(e){ 
+                  e.preventDefault();
+                    
+                  
+                  var prev_page= parseInt($("#pagenumber_input").val());
+                      
+                     
+                   if(prev_page==1)
+                   {
+                      return;
+                   }
+                     
+                    if((prev_page % 5)== 1)
+                   {
+                     var prev_val=prev_page;
+                     $(this).removeClass("active");
+                    var result_array = $("li").children("a.firstpage");
+                    prev_val=current-5;
+                    $.each(result_array,function(key,value)
+                    {
+                      
+                      $(value).first().html(prev_val);
+                      prev_val++;
+                   });
+                  }  
+                     current--; 
+                  var num1= (prev_page % 5) - 1;
+                  if(num1==-1)
+                      num1=4;
+                  prev_page--;
+                $("#pagenumber_input").val(prev_page);     
+                 $("#Form1").submit();
+                 
+                 
+                 $(".firstpage").parent().removeClass("active");
+                 $("#page"+num1).parent().addClass("active");  
+                    
+                    
+                    });
+                
+                $('.next').click(function(e){ 
+                    
+
+                  e.preventDefault();
+                  current++;      
+                  $('.previous').parent().removeClass("disabled");
+                  var next_page= parseInt($("#pagenumber_input").val());
+                      
+                  if((next_page % 5)== 0)
+                   {
+                     var next_val=next_page;
+                     next_val++;   
+                    $(this).removeClass("active");
+                    var result_array = $("li").children("a.firstpage");
+                    
+                    $.each(result_array,function(key,value)
+                    {
+                      $(value).first().html(next_val);
+                      next_val++;
+                   });
+                  } 
+                    
+                  var num1= (next_page % 5) + 1;
+                  if(num1==-1)
+                      num1=4;
+                    next_page++;
+                $("#pagenumber_input").val(next_page); 
+                 $("#Form1").submit();
+                  
+                 $(".firstpage").parent().removeClass("active");
+                 $("#page"+num1).parent().addClass("active");
+                 //$(this).parent().addClass("active");  
+                    
+                    
+                    });      
+
+</script>
+   
+    
+    
+    
+</body>
+</html>
